@@ -15,4 +15,6 @@ int get_ns(struct numset *, unsigned int index);
 
 void clear_ns(struct numset *);
 
+unsigned int size_ns(struct numset *);
+
 #endif

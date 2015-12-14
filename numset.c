@@ -48,3 +48,7 @@ void unset_ns(struct numset *ns, unsigned int index) {
 void clear_ns(struct numset *ns) {
 	ns->size = 0;
 }
+
+unsigned int size_ns(struct numset *ns) {
+	return ns->size;
+}

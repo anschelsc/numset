@@ -8,7 +8,13 @@ import (
 // #include "numset.h"
 import "C"
 
-var OutOfRange = errors.New("Index out of range.")
+var (
+	OutOfRange = errors.New("Index out of range.")
+	MaxTooBig = errors.New("max is too big to hold in a C unsigned int.")
+)
+
+// The largest value that can be stored in a C unsigned int
+const MaxCUint = uint(^C.uint(0))
 
 // A Set holds uints below a fixed maximum value.
 // This behaves like [max]bool; it takes up about twice as much space
@@ -19,22 +25,27 @@ type Set struct {
 }
 
 // Creates a new *Set that will hold uints in [0, max).
-// Bad Things (and currently uncaught) will happen if max is too big to fit in a
-// C unsigned int.
+// The value of max must be small enough to fit in a C unsigned int (that is, no bigger than MaxCUint).
+// If not, the error MaxTooBig is returned.
 //
 // O(1) plus allocation costs
-func New(max uint) *Set {
+func New(max uint) (*Set, error) {
+	if max > MaxCUint {
+		return nil, MaxTooBig
+	}
 	ret := &Set{max: max}
 	ret.data = C.make_ns(C.uint(max))
 	runtime.SetFinalizer(ret, finalizer)
-	return ret
+	return ret, nil
 }
 
 func finalizer(s *Set) {
 	C.free_ns(s.data)
 }
 
-// Returns the maximum passed to New()
+// Returns the maximum passed to New().
+//
+// O(1)
 func (s *Set) Max() uint {
 	return s.max
 }
@@ -85,4 +96,11 @@ func (s *Set) Unset(index uint) error {
 // O(1)
 func (s *Set) Clear() {
 	C.clear_ns(s.data)
+}
+
+// The number of elements in a set. Equivalent to len() applied to a map.
+//
+// O(1)
+func (s *Set) Size() uint {
+	return uint(C.size_ns(s.data))
 }
